@@ -2,7 +2,6 @@ use eg::db::{DatabaseConnection, DatabaseConnectionBuilder};
 use eg::idl;
 use eg::osrf::app::{Application, ApplicationWorker, ApplicationWorkerFactory};
 use eg::osrf::conf;
-use eg::osrf::message;
 use eg::osrf::method::MethodDef;
 use eg::osrf::sclient::HostSettings;
 use eg::Client;
@@ -34,6 +33,12 @@ const DIRECT_METHODS: &[&str] = &["create", "retrieve", "search", "update", "del
 
 /// Our main application class.
 pub struct RsStoreApplication {}
+
+impl Default for RsStoreApplication {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl RsStoreApplication {
     pub fn new() -> Self {
@@ -67,9 +72,7 @@ impl RsStoreApplication {
                 // basis for each auto-method.  The stubs themselves are
                 // not registered.
                 let stub = methods::METHODS
-                    .iter()
-                    .filter(|m| m.name.eq(&format!("{mtype}-stub")))
-                    .next()
+                    .iter().find(|m| m.name.eq(&format!("{mtype}-stub")))
                     .unwrap(); // these are hard-coded to exist.
 
                 let mut clone = stub.into_method(APPNAME);
@@ -88,27 +91,21 @@ impl RsStoreApplication {
     fn register_xact_methods(&self, methods: &mut Vec<MethodDef>) {
         let api = "transaction.begin";
         let begin = methods::METHODS
-            .iter()
-            .filter(|m| m.name.eq(api))
-            .next()
+            .iter().find(|m| m.name.eq(api))
             .unwrap();
 
         methods.push(begin.into_method(APPNAME));
 
         let api = "transaction.rollback";
         let rollback = methods::METHODS
-            .iter()
-            .filter(|m| m.name.eq(api))
-            .next()
+            .iter().find(|m| m.name.eq(api))
             .unwrap();
 
         methods.push(rollback.into_method(APPNAME));
 
         let api = "transaction.commit";
         let commit = methods::METHODS
-            .iter()
-            .filter(|m| m.name.eq(api))
-            .next()
+            .iter().find(|m| m.name.eq(api))
             .unwrap();
 
         methods.push(commit.into_method(APPNAME));
@@ -134,9 +131,7 @@ impl Application for RsStoreApplication {
         self.register_xact_methods(&mut methods);
 
         let json_query = methods::METHODS
-            .iter()
-            .filter(|m| m.name.eq("json_query"))
-            .next()
+            .iter().find(|m| m.name.eq("json_query"))
             .unwrap();
 
         methods.push(json_query.into_method(APPNAME));
@@ -157,6 +152,12 @@ pub struct RsStoreWorker {
     methods: Option<Arc<HashMap<String, MethodDef>>>,
     database: Option<Rc<RefCell<DatabaseConnection>>>,
     last_work_timer: Option<eg::util::Timer>,
+}
+
+impl Default for RsStoreWorker {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RsStoreWorker {
@@ -181,7 +182,7 @@ impl RsStoreWorker {
     pub fn downcast(w: &mut Box<dyn ApplicationWorker>) -> EgResult<&mut RsStoreWorker> {
         match w.as_any_mut().downcast_mut::<RsStoreWorker>() {
             Some(eref) => Ok(eref),
-            None => Err(format!("Cannot downcast").into()),
+            None => Err("Cannot downcast".to_string().into()),
         }
     }
 
@@ -250,7 +251,7 @@ impl ApplicationWorker for RsStoreWorker {
     }
 
     fn methods(&self) -> &Arc<HashMap<String, MethodDef>> {
-        &self.methods.as_ref().unwrap()
+        self.methods.as_ref().unwrap()
     }
 
     fn worker_start(
@@ -327,7 +328,7 @@ impl ApplicationWorker for RsStoreWorker {
         Ok(())
     }
 
-    fn api_call_error(&mut self, _request: &message::MethodCall, error: EgError) {
+    fn api_call_error(&mut self, _api_name: &str, error: EgError) {
         log::debug!("API failed: {error}");
         self.end_session().ok(); // ignore additional errors
     }

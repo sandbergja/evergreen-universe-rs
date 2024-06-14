@@ -184,7 +184,7 @@ pub static METHODS: &[StaticMethodDef] = &[
 pub fn checkout_renew_checkin(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsCircWorker::downcast(worker)?;
     let authtoken = method.param(0).str()?;
@@ -249,7 +249,7 @@ pub fn checkout_renew_checkin(
 pub fn renewal_chain_summary(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsCircWorker::downcast(worker)?;
     let authtoken = method.param(0).str()?;
@@ -273,7 +273,7 @@ pub fn renewal_chain_summary(
 pub fn prev_renewal_chain_summary(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsCircWorker::downcast(worker)?;
     let authtoken = method.param(0).str()?;
@@ -314,7 +314,7 @@ pub fn prev_renewal_chain_summary(
 
     let prev_circ = editor.search_with_ops("aacs", query, flesh)?;
 
-    if prev_circ.len() == 0 {
+    if prev_circ.is_empty() {
         // No previous circ chain
         return Ok(());
     }

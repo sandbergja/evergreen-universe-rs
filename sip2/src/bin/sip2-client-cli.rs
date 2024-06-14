@@ -1,4 +1,3 @@
-use getopts;
 use sip2::*;
 use std::env;
 use std::sync::Arc;
@@ -90,10 +89,10 @@ fn main() {
 
     let duration = start.elapsed().unwrap().as_millis();
     let seconds = (duration as f64) / 1000.0;
-    let count = parallel * repeat;
+    let count = parallel * repeat * messages.len();
     let thput = count as f64 / seconds;
 
-    println!("{count} requests processed in {seconds:.3} seconds; ~{thput:.3} reqs / second");
+    println!("{count} messages processed in {seconds:.3} seconds; ~{thput:.3} reqs / second");
 }
 
 fn run_one_thread(
@@ -177,11 +176,11 @@ fn read_options() -> getopts::Matches {
 
     opts.optmulti("", "message-type", "Message Type", "");
 
-    let matches = opts
-        .parse(&args[1..]) // skip the command name
-        .expect("Error parsing command line options");
+    
 
-    matches
+    opts
+        .parse(&args[1..]) // skip the command name
+        .expect("Error parsing command line options")
 }
 
 /// Create the SIP paramater set from the command line arguments.

@@ -20,7 +20,7 @@ impl FixedField {
     pub fn new(spec: &'static spec::FixedField, value: &str) -> Result<Self, Error> {
         if value.len() == spec.length {
             Ok(FixedField {
-                spec: spec,
+                spec,
                 value: value.to_string(),
             })
         } else {
@@ -34,6 +34,15 @@ impl FixedField {
 
     pub fn value(&self) -> &str {
         &self.value
+    }
+
+    pub fn set_value(&mut self, value: &str) -> Result<(), Error> {
+        if value.len() == self.spec.length {
+            self.value = value.to_string();
+            Ok(())
+        } else {
+            Err(Error::FixedFieldLengthError)
+        }
     }
 
     /// Translate a FixedField into a string which can be inserted into
@@ -135,14 +144,23 @@ impl Message {
         msg
     }
 
+    pub fn from_code(msg_code: &str) -> Result<Message, Error> {
+        Message::from_ff_values(msg_code, &[])
+    }
+
     /// Creates a new message from a set of fixed field values.
     ///
     /// Returns an error if the fixed field values provided are not
     /// the correct length for the specified message type.
-    pub fn from_ff_values(
-        msg_spec: &'static spec::Message,
-        fixed_fields: &[&str],
-    ) -> Result<Message, Error> {
+    pub fn from_ff_values(msg_code: &str, fixed_fields: &[&str]) -> Result<Message, Error> {
+        let msg_spec = match spec::Message::from_code(msg_code) {
+            Some(s) => s,
+            None => {
+                log::error!("Unknown message code: {msg_code}");
+                return Err(Error::UnknownMessageError);
+            }
+        };
+
         let mut ff: Vec<FixedField> = Vec::new();
 
         for (idx, ff_spec) in msg_spec.fixed_fields.iter().enumerate() {
@@ -168,11 +186,11 @@ impl Message {
 
     /// Create a new message from a list of fixed field and field string values.
     pub fn from_values(
-        spec: &'static spec::Message,
+        msg_code: &str,
         fixed_fields: &[&str],
         fields: &[(&str, &str)],
     ) -> Result<Message, Error> {
-        let mut msg = Message::from_ff_values(spec, fixed_fields)?;
+        let mut msg = Message::from_ff_values(msg_code, fixed_fields)?;
         for field in fields {
             msg.add_field(field.0, field.1);
         }
@@ -234,7 +252,7 @@ impl Message {
 
     /// Return the first value with the specified field code.
     pub fn get_field_value(&self, code: &str) -> Option<&str> {
-        if let Some(f) = self.fields().iter().filter(|f| f.code() == code).next() {
+        if let Some(f) = self.fields().iter().find(|f| f.code() == code) {
             Some(f.value.as_str())
         } else {
             None
@@ -255,6 +273,10 @@ impl Message {
 
     pub fn fixed_fields(&self) -> &Vec<FixedField> {
         &self.fixed_fields
+    }
+
+    pub fn fixed_fields_mut(&mut self) -> &mut Vec<FixedField> {
+        &mut self.fixed_fields
     }
 
     /// Create a SIP string of a message.
@@ -377,11 +399,11 @@ impl Message {
         }
 
         // Not all messages have fixed fields and/or fields
-        if msg_text.len() == 0 {
+        if msg_text.is_empty() {
             return Ok(msg);
         }
 
-        for part in msg_text.split("|") {
+        for part in msg_text.split('|') {
             if part.len() > 1 {
                 let val = match part.len() > 2 {
                     true => &part[2..],
@@ -398,17 +420,17 @@ impl Message {
 /// Message display support for logging / debugging.
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}\n", self.spec.code, self.spec.label)?;
+        writeln!(f, "{} {}", self.spec.code, self.spec.label)?;
 
         for ff in self.fixed_fields.iter() {
-            write!(f, "   {:.<35} {}\n", ff.spec.label, ff.value)?;
+            writeln!(f, "   {:.<35} {}", ff.spec.label, ff.value)?;
         }
 
         for field in self.fields.iter() {
             if let Some(spec) = spec::Field::from_code(&field.code) {
-                write!(f, "{} {:.<35} {}\n", spec.code, spec.label, field.value)?;
+                writeln!(f, "{} {:.<35} {}", spec.code, spec.label, field.value)?;
             } else {
-                write!(f, "{} {:.<35} {}\n", field.code, "custom", field.value)?;
+                writeln!(f, "{} {:.<35} {}", field.code, "custom", field.value)?;
             }
         }
 

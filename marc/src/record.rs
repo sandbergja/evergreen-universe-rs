@@ -1,4 +1,4 @@
-///! Models a MARC record with associated components.
+//! Models a MARC record with associated components.
 const TAG_SIZE: usize = 3;
 const LEADER_SIZE: usize = 24;
 const CODE_SIZE: usize = 1;
@@ -139,49 +139,49 @@ impl Subfield {
         &self.content
     }
     /// Set the Subfield content.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use marc::Subfield;
     /// let mut subfield: Subfield = Subfield::new("a", "potato").unwrap();
     /// subfield.set_content("cheese");
     /// assert_eq!(subfield.content(), "cheese");
     /// ```
-    /// 
+    ///
     pub fn set_content(&mut self, content: impl Into<String>) {
         self.content = content.into();
     }
     /// Get the Subfield code.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use marc::Subfield;
     /// let subfield: Subfield = Subfield::new("a", "potato").unwrap();
     /// assert_eq!(subfield.code(), "a");
     /// ```
-    /// 
+    ///
     pub fn code(&self) -> &str {
         &self.code
     }
     /// Set the Subfield code.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use marc::Subfield;
     /// let mut subfield: Subfield = Subfield::new("a", "potato").unwrap();
     /// subfield.set_code("q");
     /// assert_eq!(subfield.code(), "q");
     /// ```
-    /// 
+    ///
     /// ```should_panic
     /// use marc::Subfield;
     /// let mut subfield: Subfield = Subfield::new("a", "potato").unwrap();
     /// subfield.set_code("🥔").unwrap();
     /// ```
-    /// 
+    ///
     pub fn set_code(&mut self, code: impl Into<String>) -> Result<(), String> {
         let code: String = code.into();
         check_byte_count(&code, CODE_SIZE)?;
@@ -208,7 +208,7 @@ impl Field {
     ///
     /// ```
     /// use marc::record::Field;
-    /// 
+    ///
     /// let field: Field = match Field::new("245") {
     ///   Ok(f) => f,
     ///   Err(e) => panic!("Field::new() failed with: {}", e),
@@ -218,13 +218,17 @@ impl Field {
     /// assert_eq!(field.ind2(), " ");
     /// assert_eq!(field.subfields().len(), 0);
     /// ```
-    /// 
+    ///
     pub fn new(tag: impl Into<String>) -> Result<Self, String> {
         let tag = tag.into();
         check_byte_count(&tag, TAG_SIZE)?;
 
         if tag.as_str() < "010" || tag.as_str() > "999" {
-            return Err(format!("Invalid tag for data field: {tag}"));
+            // Of note, OCLC sometimes creates MARC records with data
+            // fields using the tag "DAT".  For our purposes, the only
+            // thing that really matters is the byte count (checked
+            // above), so just warn for unexpected tags.
+            eprintln!("Unexpected tag for data field: '{tag}'");
         }
 
         Ok(Field {
@@ -281,7 +285,7 @@ impl Field {
     }
 
     pub fn first_subfield(&self, code: &str) -> Option<&Subfield> {
-        self.subfields.iter().filter(|f| f.code() == code).next()
+        self.subfields.iter().find(|f| f.code() == code)
     }
 
     pub fn has_subfield(&self, code: &str) -> bool {
@@ -319,16 +323,27 @@ impl Field {
 
     /// Remove all subfields with the specified code and returns
     /// the count of removed subfields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use marc::record::Field;
+    /// let mut field = Field::new("505").unwrap();
+    /// let _ = field.add_subfield("t", "Chapter 1 /");
+    /// let _ = field.add_subfield("r", "Cool author --");
+    /// let _ = field.add_subfield("t", "Chapter 2.");
+    /// assert_eq!(field.subfields().len(), 3);
+    ///
+    /// assert_eq!(field.remove_subfields("t"), 2);
+    ///
+    /// assert_eq!(field.subfields().len(), 1);
+    /// ```
     pub fn remove_subfields(&mut self, code: &str) -> usize {
         let mut removed = 0;
 
-        loop {
-            if let Some(index) = self.subfields.iter().position(|s| s.code.eq(code)) {
-                self.subfields.remove(index);
-                removed += 1;
-            } else {
-                break;
-            }
+        while let Some(index) = self.subfields.iter().position(|s| s.code.eq(code)) {
+            self.subfields.remove(index);
+            removed += 1;
         }
 
         removed
@@ -343,6 +358,12 @@ pub struct Record {
 }
 
 /// A MARC record with leader, control fields, and data fields.
+impl Default for Record {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Record {
     /// Create a new Record with a default leader and no content.
     pub fn new() -> Self {
@@ -374,11 +395,9 @@ impl Record {
     /// Returns Err if the value is not composed of the correct number
     /// of bytes.
     pub fn set_leader_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
-        let s = std::str::from_utf8(bytes).or_else(|e| {
-            Err(format!(
+        let s = std::str::from_utf8(bytes).map_err(|e| format!(
                 "Leader is not a valid UTF-8 string: {e} bytes={bytes:?}"
-            ))
-        })?;
+            ))?;
         self.set_leader(s)
     }
 
@@ -445,11 +464,11 @@ impl Record {
         match self.fields().iter().position(|f| f.tag() > field.tag()) {
             Some(idx) => {
                 self.fields_mut().insert(idx, field);
-                return idx;
+                idx
             }
             None => {
                 self.fields_mut().push(field);
-                return 0;
+                0
             }
         }
     }

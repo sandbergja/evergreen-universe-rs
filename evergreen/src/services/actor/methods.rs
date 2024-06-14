@@ -186,7 +186,7 @@ pub static METHODS: &[StaticMethodDef] = &[
 pub fn get_barcodes(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     // Cast our worker instance into something we know how to use.
     let worker = app::RsActorWorker::downcast(worker)?;
@@ -199,7 +199,7 @@ pub fn get_barcodes(
     let context = method.param(2).str()?;
     let barcode = method.param(3).str()?;
 
-    let mut editor = Editor::with_auth(worker.client(), &authtoken);
+    let mut editor = Editor::with_auth(worker.client(), authtoken);
 
     // Auth check
     if !editor.checkauth()? {
@@ -259,7 +259,7 @@ pub fn get_barcodes(
 pub fn user_has_work_perm_at_batch(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     // Cast our worker instance into something we know how to use.
     let worker = app::RsActorWorker::downcast(worker)?;
@@ -273,7 +273,7 @@ pub fn user_has_work_perm_at_batch(
         .map(|v| v.as_str().unwrap())
         .collect();
 
-    if perm_names.len() == 0 {
+    if perm_names.is_empty() {
         return Ok(());
     }
 
@@ -293,7 +293,7 @@ pub fn user_has_work_perm_at_batch(
     for perm in perm_names {
         map.insert(
             perm.to_string(),
-            user::has_work_perm_at(&mut editor, user_id, &perm)?,
+            user::has_work_perm_at(&mut editor, user_id, perm)?,
         );
     }
 
@@ -303,7 +303,7 @@ pub fn user_has_work_perm_at_batch(
 pub fn retrieve_cascade_settigs(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsActorWorker::downcast(worker)?;
 
@@ -314,7 +314,7 @@ pub fn retrieve_cascade_settigs(
         .map(|v| v.as_str().unwrap())
         .collect();
 
-    if setting_names.len() == 0 {
+    if setting_names.is_empty() {
         return Ok(());
     }
 
@@ -353,7 +353,7 @@ pub fn retrieve_cascade_settigs(
 pub fn ou_setting_ancestor_default_batch(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsActorWorker::downcast(worker)?;
     let org_id = method.param(0).int()?;
@@ -365,7 +365,7 @@ pub fn ou_setting_ancestor_default_batch(
         .map(|v| v.as_str().unwrap())
         .collect();
 
-    if setting_names.len() == 0 {
+    if setting_names.is_empty() {
         return Ok(());
     }
 
@@ -402,7 +402,7 @@ pub fn ou_setting_ancestor_default_batch(
 pub fn user_opac_vital_stats(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsActorWorker::downcast(worker)?;
     let authtoken = method.param(0).str()?;
@@ -454,7 +454,7 @@ pub fn user_opac_vital_stats(
     };
 
     let mut unread_count = 0;
-    if let Some(unread) = editor.json_query(unread_query)?.get(0) {
+    if let Some(unread) = editor.json_query(unread_query)?.first() {
         unread_count = unread["count"].int()?;
     }
 
@@ -478,7 +478,7 @@ pub fn user_opac_vital_stats(
 pub fn update_penalties(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsActorWorker::downcast(worker)?;
     let authtoken = method.param(0).str()?;

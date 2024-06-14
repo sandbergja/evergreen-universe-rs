@@ -65,6 +65,17 @@ pub struct LoginArgs {
 }
 
 impl LoginArgs {
+    /// # Examples
+    /// ```
+    /// use evergreen::common::auth;
+    /// let args = auth::LoginArgs::new(
+    ///   "my-staff-username",
+    ///   "my-staff-password",
+    ///   auth::LoginType::Staff,
+    ///   Some("branch1-circ-workstation")
+    /// );
+    /// assert_eq!(args.username(), "my-staff-username");
+    /// ```
     pub fn new(
         username: &str,
         password: &str,
@@ -134,6 +145,9 @@ impl InternalLoginArgs {
     }
     pub fn set_org_unit(&mut self, org_unit: i64) {
         self.org_unit = Some(org_unit);
+    }
+    pub fn set_workstation(&mut self, workstation: &str) {
+        self.workstation = Some(workstation.to_string());
     }
 
     pub fn to_eg_value(&self) -> EgValue {

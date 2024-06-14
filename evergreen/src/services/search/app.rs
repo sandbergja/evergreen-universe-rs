@@ -1,5 +1,4 @@
 use eg::osrf::app::{Application, ApplicationWorker, ApplicationWorkerFactory};
-use eg::osrf::message;
 use eg::osrf::method::MethodDef;
 use eg::Client;
 use eg::EgError;
@@ -16,6 +15,12 @@ const APPNAME: &str = "open-ils.rs-search";
 
 /// Our main application class.
 pub struct RsSearchApplication {}
+
+impl Default for RsSearchApplication {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl RsSearchApplication {
     pub fn new() -> Self {
@@ -58,6 +63,12 @@ pub struct RsSearchWorker {
     methods: Option<Arc<HashMap<String, MethodDef>>>,
 }
 
+impl Default for RsSearchWorker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RsSearchWorker {
     pub fn new() -> Self {
         RsSearchWorker {
@@ -73,7 +84,7 @@ impl RsSearchWorker {
     pub fn downcast(w: &mut Box<dyn ApplicationWorker>) -> EgResult<&mut RsSearchWorker> {
         match w.as_any_mut().downcast_mut::<RsSearchWorker>() {
             Some(eref) => Ok(eref),
-            None => Err(format!("Cannot downcast").into()),
+            None => Err("Cannot downcast".to_string().into()),
         }
     }
 
@@ -94,7 +105,7 @@ impl ApplicationWorker for RsSearchWorker {
     }
 
     fn methods(&self) -> &Arc<HashMap<String, MethodDef>> {
-        &self.methods.as_ref().unwrap()
+        self.methods.as_ref().unwrap()
     }
 
     fn worker_start(
@@ -130,5 +141,5 @@ impl ApplicationWorker for RsSearchWorker {
         Ok(())
     }
 
-    fn api_call_error(&mut self, _request: &message::MethodCall, _error: EgError) {}
+    fn api_call_error(&mut self, _api_name: &str, _error: EgError) {}
 }

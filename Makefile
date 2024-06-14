@@ -6,8 +6,8 @@ SYSTEMD_DIR = /lib/systemd/system
 # Number of test threads to run in parallel.
 # Inline doc tests are compiler-heavy so having a limit here
 # helps ensure things don't get out of hand ram/cpu/disk-wise.
-TEST_THREADS = 8
-BUILD_THREADS = 8
+TEST_THREADS = 4
+BUILD_THREADS = 4
 
 build: build-evergreen build-sip2mediator
 
@@ -42,29 +42,35 @@ build-evergreen-release:
 install-evergreen: install-evergreen-config install-evergreen-bin
 
 install-evergreen-bin:
-	cp ./target/debug/eg-router ${TARGET}/bin
 	cp ./target/debug/egsh ${TARGET}/bin
+	cp ./target/debug/eg-router ${TARGET}/bin
+	cp ./target/debug/eg-buswatch ${TARGET}/bin
 	cp ./target/debug/eg-http-gateway ${TARGET}/bin
 	cp ./target/debug/eg-websockets ${TARGET}/bin
 	cp ./target/debug/eg-service-rs-actor ${TARGET}/bin
 	cp ./target/debug/eg-service-rs-circ ${TARGET}/bin
+	cp ./target/debug/eg-service-rs-sip2 ${TARGET}/bin
 
 install-evergreen-release: install-evergreen-config install-evergreen-bin-release
 
 install-evergreen-bin-release: 
-	cp ./target/release/eg-router ${TARGET}/bin
 	cp ./target/release/egsh ${TARGET}/bin
+	cp ./target/release/eg-router ${TARGET}/bin
+	cp ./target/release/eg-buswatch ${TARGET}/bin
 	cp ./target/release/eg-http-gateway ${TARGET}/bin
 	cp ./target/release/eg-websockets ${TARGET}/bin
 	cp ./target/release/eg-service-rs-actor ${TARGET}/bin
 	cp ./target/release/eg-service-rs-circ ${TARGET}/bin
+	cp ./target/release/eg-service-rs-sip2 ${TARGET}/bin
 
 install-evergreen-config:
 	cp ./systemd/eg-router.service ${SYSTEMD_DIR}/
+	cp ./systemd/eg-buswatch.service ${SYSTEMD_DIR}/
 	cp ./systemd/eg-http-gateway.service ${SYSTEMD_DIR}/
 	cp ./systemd/eg-websockets.service ${SYSTEMD_DIR}/
 	cp ./systemd/eg-service-rs-actor.service ${SYSTEMD_DIR}/
 	cp ./systemd/eg-service-rs-circ.service ${SYSTEMD_DIR}/
+	cp ./systemd/eg-service-rs-sip2.service ${SYSTEMD_DIR}/
 	systemctl daemon-reload
 
 # --- SIP2 Mediator ---

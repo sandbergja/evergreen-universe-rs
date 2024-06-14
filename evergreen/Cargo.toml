@@ -81,6 +81,11 @@ path = "src/bin/bib-to-auth-linker.rs"
 name = "eg-parallel-ingest"
 path = "src/bin/parallel-ingest.rs"
 
+[[bin]]
+name = "eg-buswatch"
+path = "src/bin/buswatch.rs"
+
+
 # --- Services
 # Service names are prefixed with rs- to prevent
 # clobberation with existing service names.
@@ -108,6 +113,10 @@ path = "src/services/store/main.rs"
 [[bin]]
 name = "eg-service-rs-auth-internal"
 path = "src/services/auth-internal/main.rs"
+
+[[bin]]
+name = "eg-service-rs-sip2"
+path = "src/services/sip2/main.rs"
 
 
 

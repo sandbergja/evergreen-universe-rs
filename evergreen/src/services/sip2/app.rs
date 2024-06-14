@@ -1,7 +1,9 @@
 use eg::osrf::app::{Application, ApplicationWorker, ApplicationWorkerFactory};
+use eg::osrf::cache::Cache;
 use eg::osrf::method::MethodDef;
 use eg::Client;
-use eg::{EgError, EgResult};
+use eg::EgError;
+use eg::EgResult;
 use evergreen as eg;
 use std::any::Any;
 use std::collections::HashMap;
@@ -10,24 +12,24 @@ use std::sync::Arc;
 // Import our local methods module.
 use crate::methods;
 
-const APPNAME: &str = "open-ils.rs-circ";
+const APPNAME: &str = "open-ils.rs-sip2";
 
 /// Our main application class.
-pub struct RsCircApplication {}
+pub struct Sip2Application {}
 
-impl Default for RsCircApplication {
+impl Default for Sip2Application {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RsCircApplication {
+impl Sip2Application {
     pub fn new() -> Self {
-        RsCircApplication {}
+        Sip2Application {}
     }
 }
 
-impl Application for RsCircApplication {
+impl Application for Sip2Application {
     fn name(&self) -> &str {
         APPNAME
     }
@@ -38,13 +40,11 @@ impl Application for RsCircApplication {
         Ok(())
     }
 
-    /// Tell the Server what methods we want to publish.
     fn register_methods(&self, _client: Client) -> EgResult<Vec<MethodDef>> {
         let mut methods: Vec<MethodDef> = Vec::new();
 
         // Create Method objects from our static method definitions.
         for def in methods::METHODS.iter() {
-            log::info!("Registering method: {}", def.name());
             methods.push(def.into_method(APPNAME));
         }
 
@@ -52,27 +52,35 @@ impl Application for RsCircApplication {
     }
 
     fn worker_factory(&self) -> ApplicationWorkerFactory {
-        || Box::new(RsCircWorker::new())
+        || Box::new(Sip2Worker::new())
     }
 }
 
 /// Per-thread worker instance.
-pub struct RsCircWorker {
+pub struct Sip2Worker {
     client: Option<Client>,
     methods: Option<Arc<HashMap<String, MethodDef>>>,
 }
 
-impl Default for RsCircWorker {
+impl Default for Sip2Worker {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RsCircWorker {
+impl Sip2Worker {
     pub fn new() -> Self {
-        RsCircWorker {
+        Sip2Worker {
             client: None,
             methods: None,
+        }
+    }
+
+    /// Casts a generic ApplicationWorker into our Sip2Worker.
+    pub fn downcast(w: &mut Box<dyn ApplicationWorker>) -> EgResult<&mut Sip2Worker> {
+        match w.as_any_mut().downcast_mut::<Sip2Worker>() {
+            Some(eref) => Ok(eref),
+            None => Err("Cannot downcast".to_string().into()),
         }
     }
 
@@ -81,19 +89,13 @@ impl RsCircWorker {
         self.client.as_ref().unwrap()
     }
 
-    /// Cast a generic ApplicationWorker into our RsCircWorker.
-    ///
-    /// This is necessary to access methods/fields on our RsCircWorker that
-    /// are not part of the ApplicationWorker trait.
-    pub fn downcast(w: &mut Box<dyn ApplicationWorker>) -> EgResult<&mut RsCircWorker> {
-        match w.as_any_mut().downcast_mut::<RsCircWorker>() {
-            Some(eref) => Ok(eref),
-            None => Err("Cannot downcast".to_string().into()),
-        }
+    /// Mutable ref to our OpenSRF client.
+    pub fn client_mut(&mut self) -> &mut Client {
+        self.client.as_mut().unwrap()
     }
 }
 
-impl ApplicationWorker for RsCircWorker {
+impl ApplicationWorker for Sip2Worker {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
@@ -102,12 +104,12 @@ impl ApplicationWorker for RsCircWorker {
         self.methods.as_ref().unwrap()
     }
 
-    /// Absorb our global dataset.
     fn worker_start(
         &mut self,
         client: Client,
         methods: Arc<HashMap<String, MethodDef>>,
     ) -> EgResult<()> {
+        Cache::init_cache("global")?;
         self.client = Some(client);
         self.methods = Some(methods);
         Ok(())
@@ -117,13 +119,7 @@ impl ApplicationWorker for RsCircWorker {
         Ok(())
     }
 
-    /// Called after all requests are handled and the worker is
-    /// shutting down.
     fn worker_end(&mut self) -> EgResult<()> {
-        Ok(())
-    }
-
-    fn keepalive_timeout(&mut self) -> EgResult<()> {
         Ok(())
     }
 
@@ -132,6 +128,10 @@ impl ApplicationWorker for RsCircWorker {
     }
 
     fn end_session(&mut self) -> EgResult<()> {
+        Ok(())
+    }
+
+    fn keepalive_timeout(&mut self) -> EgResult<()> {
         Ok(())
     }
 

@@ -1,6 +1,5 @@
 use eg::osrf::app::{Application, ApplicationWorker, ApplicationWorkerFactory};
 use eg::osrf::cache::Cache;
-use eg::osrf::message;
 use eg::osrf::method::MethodDef;
 use eg::Client;
 use eg::EgError;
@@ -17,6 +16,12 @@ const APPNAME: &str = "open-ils.rs-auth-internal";
 
 /// Our main application class.
 pub struct RsAuthInternalApplication {}
+
+impl Default for RsAuthInternalApplication {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl RsAuthInternalApplication {
     pub fn new() -> Self {
@@ -59,6 +64,12 @@ pub struct RsAuthInternalWorker {
     methods: Option<Arc<HashMap<String, MethodDef>>>,
 }
 
+impl Default for RsAuthInternalWorker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RsAuthInternalWorker {
     pub fn new() -> Self {
         RsAuthInternalWorker {
@@ -74,7 +85,7 @@ impl RsAuthInternalWorker {
     pub fn downcast(w: &mut Box<dyn ApplicationWorker>) -> EgResult<&mut RsAuthInternalWorker> {
         match w.as_any_mut().downcast_mut::<RsAuthInternalWorker>() {
             Some(eref) => Ok(eref),
-            None => Err(format!("Cannot downcast").into()),
+            None => Err("Cannot downcast".to_string().into()),
         }
     }
 
@@ -95,7 +106,7 @@ impl ApplicationWorker for RsAuthInternalWorker {
     }
 
     fn methods(&self) -> &Arc<HashMap<String, MethodDef>> {
-        &self.methods.as_ref().unwrap()
+        self.methods.as_ref().unwrap()
     }
 
     fn worker_start(
@@ -132,5 +143,5 @@ impl ApplicationWorker for RsAuthInternalWorker {
         Ok(())
     }
 
-    fn api_call_error(&mut self, _request: &message::MethodCall, _error: EgError) {}
+    fn api_call_error(&mut self, _api_name: &str, _error: EgError) {}
 }

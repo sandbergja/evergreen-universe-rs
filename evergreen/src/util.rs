@@ -156,20 +156,18 @@ impl Timer {
 /// assert_eq!(s.as_str(), util::REDACTED_PARAMS_STR);
 /// ```
 pub fn stringify_params(method: &str, params: &Vec<EgValue>, log_protect: &Vec<String>) -> String {
-    if log_protect
-        .iter()
-        .filter(|m| method.starts_with(&m[..]))
-        .next()
-        .is_none()
-    {
+    // Check if the method should be protected
+    let is_protected = log_protect.iter().any(|m| method.starts_with(m));
+
+    if is_protected {
+        REDACTED_PARAMS_STR.to_string()
+    } else {
         params
             .iter()
             // EgValue.dump() consumes the value, hence the clone.
             .map(|p| p.clone().dump())
             .collect::<Vec<_>>()
             .join(", ")
-    } else {
-        REDACTED_PARAMS_STR.to_string()
     }
 }
 
@@ -332,15 +330,4 @@ pub fn tcp_listener(address: &str, port: u16, read_timeout: u64) -> EgResult<Tcp
         .or_else(|e| Err(format!("Error setting socket read_timeout: {e}")))?;
 
     Ok(socket.into())
-}
-
-#[deprecated(note = "See EgValue::as_int()")]
-pub fn json_int(v: &EgValue) -> EgResult<i64> {
-    Ok(v.as_int()
-        .ok_or_else(|| format!("Cannot coerce to int: {}", v.dump()))?)
-}
-
-#[deprecated(note = "See EgValue::as_bool() / boolish()")]
-pub fn json_bool(v: &EgValue) -> bool {
-    v.boolish()
 }

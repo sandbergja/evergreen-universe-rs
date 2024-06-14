@@ -130,10 +130,10 @@ pub static METHODS: &[StaticMethodDef] = &[
 ///
 /// Also verifies the API name has the correct number of parts.
 fn get_idl_class(apiname: &str) -> EgResult<String> {
-    let api_parts = apiname.split(".").collect::<Vec<&str>>();
+    let api_parts = apiname.split('.').collect::<Vec<&str>>();
 
     let len = api_parts.len();
-    if len < 6 || len > 7 {
+    if !(6..=7).contains(&len) {
         // .atomic
         // Could potentially happen if an IDL class was not correctly
         // encoded in the IDL file.
@@ -157,7 +157,7 @@ fn get_idl_class(apiname: &str) -> EgResult<String> {
 pub fn retrieve(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsStoreWorker::downcast(worker)?;
     let classname = get_idl_class(method.method())?;
@@ -169,7 +169,7 @@ pub fn retrieve(
 
     let mut flesh_def = None;
     if let Some(j) = method.params().get(1) {
-        flesh_def = Some(FleshDef::from_eg_value(&j)?);
+        flesh_def = Some(FleshDef::from_eg_value(j)?);
     }
 
     if let Some(obj) = translator.get_idl_object_by_pkey(&classname, pkey, flesh_def)? {
@@ -183,7 +183,7 @@ pub fn retrieve(
 pub fn search(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsStoreWorker::downcast(worker)?;
     let classname = get_idl_class(method.method())?;
@@ -196,7 +196,7 @@ pub fn search(
     search.set_filter(query.clone());
 
     if let Some(j) = method.params().get(1) {
-        search.flesh = Some(FleshDef::from_eg_value(&j)?);
+        search.flesh = Some(FleshDef::from_eg_value(j)?);
     }
 
     for value in translator.idl_class_search(&search)? {
@@ -210,7 +210,7 @@ pub fn search(
 pub fn delete(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsStoreWorker::downcast(worker)?;
     let classname = get_idl_class(method.method())?;
@@ -230,7 +230,7 @@ pub fn delete(
 pub fn create(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsStoreWorker::downcast(worker)?;
     let obj = method.param(0);
@@ -240,7 +240,7 @@ pub fn create(
 
     // This will fail if our database connection is not already
     // inside a transaction.
-    let count = translator.create_idl_object(&obj)?;
+    let count = translator.create_idl_object(obj)?;
     session.respond(count)
 }
 
@@ -248,7 +248,7 @@ pub fn create(
 pub fn update(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsStoreWorker::downcast(worker)?;
     let obj = method.param(0);
@@ -258,7 +258,7 @@ pub fn update(
 
     // This will fail if our database connection is not already
     // inside a transaction.
-    let count = translator.update_idl_object(&obj)?;
+    let count = translator.update_idl_object(obj)?;
     session.respond(count)
 }
 
@@ -270,7 +270,7 @@ pub fn update(
 pub fn manage_xact(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsStoreWorker::downcast(worker)?;
     let db = worker.database();
@@ -296,7 +296,7 @@ pub fn manage_xact(
 pub fn json_query(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsStoreWorker::downcast(worker)?;
     let query = method.param(0);
@@ -304,7 +304,7 @@ pub fn json_query(
     let db = worker.database().clone();
 
     let mut jq_compiler = JsonQueryCompiler::new();
-    jq_compiler.compile(&query)?;
+    jq_compiler.compile(query)?;
 
     let sql = jq_compiler
         .query_string()
@@ -326,7 +326,7 @@ pub fn json_query(
 
     if let Err(ref e) = query_res {
         log::error!("DB Error: {e} query={query} param={params:?}");
-        Err(format!("DB query failed. See error logs"))?;
+        Err("DB query failed. See error logs".to_string())?;
     }
 
     for row in query_res.unwrap() {

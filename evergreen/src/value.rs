@@ -511,8 +511,29 @@ impl EgValue {
         std::mem::replace(self, EgValue::Null)
     }
 
-    /// Returns an owned String if this value is a string.
+    /// Returns an owned String if this value is a String or a Number.
+    ///
+    /// Implementation directly mimics
     /// <https://docs.rs/json/latest/src/json/value/mod.rs.html#367-381>
+    ///
+    /// ```
+    /// use evergreen as eg;
+    /// use eg::EgValue;
+    ///
+    /// let mut v = EgValue::from("howdy");
+    /// let s = v.take_string().expect("Has String");
+    /// assert_eq!(s, "howdy");
+    /// assert!(v.is_null());
+    ///
+    /// let mut v = EgValue::from(17.88);
+    /// let s = v.take_string().expect("Has Stringifiable Number");
+    /// assert_eq!(s, "17.88");
+    /// assert!(v.is_null());
+    ///
+    /// let mut v = eg::array! [null, false];
+    /// let s = v.take_string();
+    /// assert!(s.is_none());
+    /// ```
     pub fn take_string(&mut self) -> Option<String> {
         let mut placeholder = Self::Null;
 
@@ -520,6 +541,10 @@ impl EgValue {
 
         if let Self::String(s) = placeholder {
             return Some(s);
+        }
+
+        if let Self::Number(n) = placeholder {
+            return Some(format!("{n}"));
         }
 
         // Not a Self::String value.
@@ -1134,7 +1159,7 @@ impl EgValue {
         Ok(())
     }
 
-    /// Iterator over the real IDL fields for this blessed value.
+    /// List of real IDL fields for this blessed value.
     ///
     /// Empty iterator if this is not a blessed value.
     pub fn real_fields(&self) -> Vec<&idl::Field> {
@@ -1591,7 +1616,10 @@ impl Index<&str> for EgValue {
                 if key.starts_with("_") || o.idl_class.has_field(key) {
                     o.values.get(key).unwrap_or(&eg::NULL)
                 } else {
-                    let err = format!("IDL class {} has no field {key}", self.classname().unwrap());
+                    let err = format!(
+                        "Indexing IDL class '{}': No field named '{key}'",
+                        self.classname().unwrap()
+                    );
                     log::error!("{err}");
                     panic!("{}", err);
                 }
@@ -1620,7 +1648,10 @@ impl IndexMut<&str> for EgValue {
 
         if is_classed {
             if !has_field || key.starts_with("_") {
-                let err = format!("IDL class {} has no field {key}", self.classname().unwrap());
+                let err = format!(
+                    "Indexing IDL class '{}': No field named '{key}'",
+                    self.classname().unwrap()
+                );
                 log::error!("{err}");
                 panic!("{}", err);
             }

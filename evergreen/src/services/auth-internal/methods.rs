@@ -7,7 +7,6 @@ use eg::osrf::session::ServerSession;
 use eg::Editor;
 use eg::EgEvent;
 use eg::EgResult;
-use eg::EgValue;
 use evergreen as eg;
 
 // Import our local app module
@@ -42,7 +41,7 @@ pub static METHODS: &[StaticMethodDef] = &[
 pub fn create_auth_session(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsAuthInternalWorker::downcast(worker)?;
     let options = method.param(0);
@@ -67,7 +66,7 @@ pub fn create_auth_session(
 pub fn validate_user(
     worker: &mut Box<dyn ApplicationWorker>,
     session: &mut ServerSession,
-    method: &message::MethodCall,
+    method: message::MethodCall,
 ) -> EgResult<()> {
     let worker = app::RsAuthInternalWorker::downcast(worker)?;
     let options = method.param(0);
@@ -120,8 +119,8 @@ pub fn validate_user(
     };
 
     // For backwards compat, login permission checks are always global.
-    if !editor.allowed(&permission)? {
-        return session.respond(EgValue::from(editor.event()));
+    if !editor.allowed(permission)? {
+        return session.respond(editor.event());
     }
 
     session.respond(EgEvent::success_value())
